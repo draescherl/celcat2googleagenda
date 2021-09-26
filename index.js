@@ -3,63 +3,79 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-function get_token(index, str) {
-  let token = "";
-  let tmp = "";
+axios
+  .get('https://services-web.u-cergy.fr/calendar/LdapLogin')
+  .then(res => {
   
-  while (!tmp.includes("value=\"")) tmp += str[index++];
-  while (str[index] != "\"") token += str[index++];
+    const creds = build_credentials(res);
+    const config = get_config(res);
 
-  return token;
-}
+    axios
+      .post('https://services-web.u-cergy.fr/calendar/LdapLogin/Logon', creds, config)
+      .then(res => {
 
-let data = new URLSearchParams();
-data.append("Name", process.env.NAME);
-data.append("Password", process.env.PASSWORD);
+        const params = build_params();
 
-axios.get('https://services-web.u-cergy.fr/calendar/LdapLogin').then(res => {
+        axios
+          .post('https://services-web.u-cergy.fr/calendar/Home/GetCalendarData', params)
+          .then(res => {
+            // console.log(res);
+          })
+          .catch(err => {
+            console.log('err');
+          });
+      });
+  });
+
+
+// =============================================================================================
+// =============================================================================================
+// =============================================================================================
+
+
+function build_credentials(res) {
   
   const token_starting_point = res.data.search('__RequestVerificationToken');
-  const token = get_token(token_starting_point, res.data);
-  data.append("__RequestVerificationToken", token);
+  const token = get_token_from_string(token_starting_point, res.data);
   
-  console.log(res.headers['set-cookie'][0]);
-  const config = {
+  let creds = new URLSearchParams();
+  creds.append("Name", process.env.USERNAME);
+  creds.append("Password", process.env.PASSWORD);
+  creds.append("__RequestVerificationToken", token);
+  
+  return creds;
+}
+
+function get_config(res) {
+  return {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Cookie': res.headers['set-cookie'][0]
     }
   }
+}
 
-  axios.post(
-    'https://services-web.u-cergy.fr/calendar/LdapLogin/Logon', 
-    data, 
-    config
-  ).then(res => {
+function build_params() {
+  const today = new Date();
+  const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate()+7);
+  const today_formated = today.toISOString().split('T')[0];
+  const next_week_formated = next_week.toISOString().split('T')[0];
+  
+  return {
+    "start": today_formated,
+    "end": next_week_formated,
+    "resType": 104,
+    // "calView": agendaWeek,
+    "federationIds[]": 21916219
+  }
+}
 
-    const obj = {
-      "start": (new Date ("2021-09-27")).toISOString().split('T')[0],
-      "end": (new Date ("2021-10-02")).toISOString().split('T')[0],
-      "resType": 104,
-      "calView": agendaWeek,
-      "federationIds[]": 21916219
-    }
+function get_token_from_string(index, str) {
+  let token = "";
+  let tmp = "";
 
-    axios.post(
-      'https://services-web.u-cergy.fr/calendar/Home/GetCalendarData',
-      obj
-    ).then(res => {
-      // console.log(res);
-    }).catch(err => {
-      console.log('err');
-    })
+  while (!tmp.includes("value=\"")) tmp += str[index++];
+  while (str[index] != "\"") token += str[index++];
 
-  }).catch(err => {
-    console.log(err)
-  });
-});
-
-// axios.interceptors.request.use(req => {
-//   console.log(req);
-//   return req;
-// })
+  return token;
+}

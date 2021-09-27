@@ -5,7 +5,7 @@ Export the Celcat timetable to our Google Agenda.
 ## Installation
 
 Step 1 : clone the repository : `git clone git@gitlab.etude.eisti.fr:dusartvict/celcat2googleagenda.git` <br>
-Step 2 : move to the corresponding directory : `cd discord-bot` <br>
+Step 2 : move to the corresponding directory : `cd celcat2googleagenda` <br>
 Step 3 : install dependencies : `npm install` <br>
 Step 4 : create a `.env` at the root of the project and paste these contents : 
 ```bash

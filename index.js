@@ -3,29 +3,13 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// axios
-//   .get('https://services-web.u-cergy.fr/calendar/LdapLogin')
-//   .then(res => {
 
-//     const creds = build_credentials(res);
-//     const config = get_config(res);
+// =============================================================================================
+// =============================================================================================
+// =============================================================================================
 
-//     axios
-//       .post('https://services-web.u-cergy.fr/calendar/LdapLogin/Logon', creds, config)
-//       .then(res => {
 
-//         const params = build_params();
-
-//         axios
-//           .post('https://services-web.u-cergy.fr/calendar/Home/GetCalendarData', params)
-//           .then(res => {
-//             // console.log(res);
-//           })
-//           .catch(err => {
-//             console.log('err');
-//           });
-//       });
-//   });
+main();
 
 async function main() {
 
@@ -35,10 +19,15 @@ async function main() {
   const resLogon = await logon(creds, config);
   const params = build_params();
   const calendarData = await getCalendarData(params);
+
 }
 
-main();
-
+axios.interceptors.request.use(req => {
+  console.log('------------------------------------------------------------------------');
+  console.log(req);
+  console.log('------------------------------------------------------------------------');
+  return req;
+});
 
 
 // =============================================================================================
@@ -54,7 +43,6 @@ async function getToken() {
     console.error(err);
   }
 }
-
 
 async function logon(creds, config) {
   try {
@@ -72,9 +60,13 @@ async function getCalendarData(params) {
   } catch (err) {
     console.error(err);
   }
-
+  
 }
 
+
+// =============================================================================================
+// =============================================================================================
+// =============================================================================================
 
 
 function build_credentials(res) {
@@ -108,9 +100,9 @@ function build_params() {
   return {
     "start": today_formated,
     "end": next_week_formated,
-    "resType": 104,
-    // "calView": agendaWeek,
-    "federationIds[]": 21916219
+    "resType": "104",
+    "calView": "agendaWeek",
+    "federationIds[]": "21916219"
   }
 }
 

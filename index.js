@@ -105,7 +105,7 @@ function create_form_data() {
   data.append('end', next_week_formated);
   data.append('resType', '104');
   data.append('calView', 'agendaWeek');
-  data.append('federationIds[]', '21916219');
+  data.append('federationIds[]', '21916219'); // Celui de jenna : 21916187
 
   return data;
 }

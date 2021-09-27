@@ -19,15 +19,16 @@ async function main() {
   const resLogon = await logon(creds, config);
   const params = build_params();
   const calendarData = await getCalendarData(params);
+  console.log(calendarData);
 
 }
 
-axios.interceptors.request.use(req => {
-  console.log('------------------------------------------------------------------------');
-  console.log(req);
-  console.log('------------------------------------------------------------------------');
-  return req;
-});
+// axios.interceptors.request.use(req => {
+//   console.log('------------------------------------------------------------------------');
+//   console.log(req);
+//   console.log('------------------------------------------------------------------------');
+//   return req;
+// });
 
 
 // =============================================================================================
@@ -55,7 +56,12 @@ async function logon(creds, config) {
 
 async function getCalendarData(params) {
   try {
-    const resp = await axios.post('https://services-web.u-cergy.fr/calendar/Home/GetCalendarData', params);
+    const resp = await axios.post('https://services-web.u-cergy.fr/calendar/Home/GetCalendarData', params, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        //'Cookie': res.headers['set-cookie'][0]
+      }
+    });
     return resp;
   } catch (err) {
     console.error(err);
@@ -100,9 +106,9 @@ function build_params() {
   return {
     "start": today_formated,
     "end": next_week_formated,
-    "resType": "104",
+    "resType": 104,
     "calView": "agendaWeek",
-    "federationIds[]": "21916219"
+    "federationIds[]": 21916219
   }
 }
 

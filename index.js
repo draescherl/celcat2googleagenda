@@ -1,5 +1,6 @@
 const axios = require('axios');
 const dotenv = require('dotenv');
+const FormData = require('form-data');
 
 dotenv.config();
 
@@ -13,30 +14,23 @@ main();
 
 async function main() {
 
-  const resToken = await getToken();
-  const creds = build_credentials(resToken);
-  const config = get_config(resToken);
-  const resLogon = await logon(creds, config);
+  const auth_page_html = await get_auth_page_html();
+  const creds = build_credentials(auth_page_html);
+  const headers = build_headers(auth_page_html);
+  const unused = await log_on(headers, creds);
   const params = build_params();
-  const calendarData = await getCalendarData(params);
+  const calendarData = await getCalendarData(headers, params);
   console.log(calendarData);
 
 }
 
-// axios.interceptors.request.use(req => {
-//   console.log('------------------------------------------------------------------------');
-//   console.log(req);
-//   console.log('------------------------------------------------------------------------');
-//   return req;
-// });
-
 
 // =============================================================================================
 // =============================================================================================
 // =============================================================================================
 
 
-async function getToken() {
+async function get_auth_page_html() {
   try {
     const resp = await axios.get('https://services-web.u-cergy.fr/calendar/LdapLogin');
     return resp;
@@ -45,28 +39,48 @@ async function getToken() {
   }
 }
 
-async function logon(creds, config) {
-  try {
-    const resp = await axios.post('https://services-web.u-cergy.fr/calendar/LdapLogin/Logon', creds, config);
-    return resp;
-  } catch (err) {
-    console.error(err);
+async function log_on(headers, creds) {
+
+  let config = {
+    method: 'post',
+    url: 'https://services-web.u-cergy.fr/calendar/LdapLogin/Logon',
+    headers: headers,
+    data: creds
   }
+
+  axios(config)
+    .then(res => {
+      return res.data;
+    })
+    .catch(err => {
+      console.log(err);
+    })
+
+  // try {
+  //   const resp = await axios.post('https://services-web.u-cergy.fr/calendar/LdapLogin/Logon', creds, config);
+  //   return resp;
+  // } catch (err) {
+  //   console.error(err);
+  // }
 }
 
-async function getCalendarData(params) {
-  try {
-    const resp = await axios.post('https://services-web.u-cergy.fr/calendar/Home/GetCalendarData', params, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        //'Cookie': res.headers['set-cookie'][0]
-      }
+async function getCalendarData(headers, data) {
+
+  let config = {
+    method: 'post',
+    url: 'https://services-web.u-cergy.fr/calendar/Home/GetCalendarData',
+    headers: headers,
+    data: data
+  };
+
+  axios(config)
+    .then(function (response) {
+      return JSON.stringify(response.data);
+    })
+    .catch(function (error) {
+      console.log(error);
     });
-    return resp;
-  } catch (err) {
-    console.error(err);
-  }
-  
+
 }
 
 
@@ -88,7 +102,7 @@ function build_credentials(res) {
   return creds;
 }
 
-function get_config(res) {
+function build_headers(res) {
   return {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -103,21 +117,13 @@ function build_params() {
   const today_formated = today.toISOString().split('T')[0];
   const next_week_formated = next_week.toISOString().split('T')[0];
 
-  return {
-    "start": today_formated,
-    "end": next_week_formated,
-    "resType": 104,
-    "calView": "agendaWeek",
-    "federationIds[]": 21916219
-  }
+  let data = new FormData();
+  data.append('start', '2021-09-27');
+  data.append('end', '2021-10-03');
+  data.append('resType', '104');
+  data.append('calView', 'agendaWeek');
+  data.append('federationIds[]', '21916219');
+
+  return data;
 }
 
-function get_token_from_string(index, str) {
-  let token = "";
-  let tmp = "";
-
-  while (!tmp.includes("value=\"")) tmp += str[index++];
-  while (str[index] != "\"") token += str[index++];
-
-  return token;
-}

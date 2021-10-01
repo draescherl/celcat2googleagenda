@@ -21,7 +21,7 @@ async function main() {
   const data = create_form_data();
   const timetable = await get_timetable_as_json(data, cookies);
 
-  console.log(timetable);
+  console.log(timetable[0]);
 
 }
 
@@ -43,7 +43,7 @@ async function get_token_and_cookies() {
     const token = get_token_from_string(token_starting_point, auth_page_response.data);
 
     result.token = token;
-    result.cookies = auth_page_response.headers['set-cookie'][0];
+    result.cookies = auth_page_response.headers['set-cookie'][0].split(';')[0];
     return result;
   } catch (err) {
     console.log(err);
@@ -58,14 +58,25 @@ async function log_on(token, cookies) {
     creds.append("Password", process.env.PASSWORD);
     creds.append("__RequestVerificationToken", token);
 
+    console.log(cookies);
+
+    const default_headers = {
+      "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+      "accept-language": "en-US,en;q=0.9",
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
+    }
+
     const headers = {
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cookie': cookies
+        ...default_headers,
+        cookie: cookies,
+        'content-type': 'application/x-www-form-urlencoded'
       }
     }
 
-    await axios.post('https://services-web.u-cergy.fr/calendar/LdapLogin/Logon', creds, headers);
+    const res = await axios.post('https://services-web.u-cergy.fr/calendar/LdapLogin/Logon', creds, headers);
+    console.log(res.headers);
   } catch (err) {
     console.log(err);
   }

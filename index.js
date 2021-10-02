@@ -14,7 +14,16 @@ dotenv.config();
   const token_and_cookies = await get_token_and_cookies();
   const other_cookies = await log_on(token_and_cookies.token, token_and_cookies.cookies);
   const calendar_data = await get_calendar(other_cookies);
-  console.log(calendar_data);
+  const data = calendar_data[calendar_data.length - 2];
+
+  // const parsed = parse_course(data);
+  const parsed = parser(calendar_data);
+  console.log(parsed);
+
+  // console.log(data.description);
+  // start
+  // end
+  // description
 })();
 
 
@@ -112,4 +121,41 @@ function get_token_from_string(index, str) {
   while (str[index] != "\"") token += str[index++];
 
   return token;
+}
+
+function parser(data) {
+  let res = [];
+  data.forEach(e => {
+    res.push(parse_course(e));
+  });
+
+  return res;
+}
+
+function parse_course(course) {
+  
+  const start = course.start;
+  const end = course.end;
+  const description = format_description(course.description);
+  const split_on_PAU = description.split("PAU");
+  const salle = split_on_PAU[1].split(' ')[1];
+  const name = (split_on_PAU[0].split(' ').length > 2) ? split_on_PAU[0].split(' ').slice(0,-3).join(' ') : split_on_PAU[0].split(' ')[0];
+  
+  // console.log(salle, '---', name, '---', description);
+  return {
+    start: start,
+    end: end,
+    name: name,
+    salle: salle
+  };
+}
+
+function format_description(desc) {
+  desc = desc.replaceAll('<br />', ' ');
+  desc = desc.replaceAll('\r\n', '');
+  desc = desc.replaceAll('&#233;', 'é');
+  desc = desc.replaceAll('&#201;', 'É');
+  desc = desc.replaceAll('&#194;', 'À');
+
+  return desc;
 }

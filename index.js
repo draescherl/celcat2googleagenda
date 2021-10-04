@@ -37,37 +37,24 @@ const IDs = [
 
 
 (async () => {
-  // console.log("Je pars à la peche aux tokens!")
-  // const token_and_cookies = await get_token_and_cookies();
-  // console.log("J'ai mes tokens !!")
-  // const other_cookies = await log_on(token_and_cookies.token, token_and_cookies.cookies);
-  // console.log("Et les copains je suis logged, pouet pouet !")
+  console.log("Je pars à la peche aux tokens!")
+  const token_and_cookies = await get_token_and_cookies();
+  console.log("J'ai mes tokens !!")
+  const other_cookies = await log_on(token_and_cookies.token, token_and_cookies.cookies);
+  console.log("Et les copains je suis logged, pouet pouet !")
 
 
   const content = fs.readFileSync('./private/credentials.json');
   const oAuth2Client = authorize(JSON.parse(content));
 
+
   const group = IDs[0];
+  deleteEvents(oAuth2Client, group.calendarID);
   // for (const group of IDs) {
-  // const calendar_data = await get_calendar(other_cookies, group.studentID);
-  // const parsed = parser(calendar_data);
+  const calendar_data = await get_calendar(other_cookies, group.studentID);
+  const parsed = parser(calendar_data);
   // console.log(parsed);
-  const parsed = [
-    {
-      start: "2021-10-05T14:00:00",
-      end: "2021-10-05T15:30:00",
-      room: "E214",
-      name: "ECE"
-  },
-    {
-      start: "2021-10-05T15:45:00",
-      end: "2021-10-05T17:15:00",
-      room: "E214",
-      name: "Dev Dist JEE"
-  }
-];
-  saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
-  // }
+  // saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
 })();
 
 
@@ -207,23 +194,33 @@ function format_description(desc) {
 }
 
 function saveDataInCalendar(data, calendarID, auth) {
-  let event = {
-    'summary': '',
-    'start': {
-      'dateTime': '',
-      'timeZone': 'Europe/Paris',
-    },
-    'end': {
-      'dateTime': '',
-      'timeZone': 'Europe/Paris',
-    }
-  };
+  // let event = {
+  //   'summary': '',
+  //   'start': {
+  //     'dateTime': '',
+  //     'timeZone': 'Europe/Paris',
+  //   },
+  //   'end': {
+  //     'dateTime': '',
+  //     'timeZone': 'Europe/Paris',
+  //   }
+  // };
 
   for (const course of data) {
-    event.summary = `[${course.room}] ${course.name}`;
-    event.start.dateTime = course.start;
-    event.end.dateTime = course.end;
-    insertEvent(auth, event, calendarID);
+    // event.summary = `[${course.room}] ${course.name}`;
+    // event.start.dateTime = course.start;
+    // event.end.dateTime = course.end;
+    insertEvent(auth, {
+      'summary': `[${course.room}] ${course.name}`,
+      'start': {
+        'dateTime': course.start,
+        'timeZone': 'Europe/Paris',
+      },
+      'end': {
+        'dateTime': course.end,
+        'timeZone': 'Europe/Paris',
+      }
+    }, calendarID);
   }
 }
 
@@ -244,14 +241,47 @@ function insertEvent(auth, event, calendarId) {
 }
 
 
+function deleteEvents(auth, calendarID) {
+
+  const calendar = google.calendar({ version: 'v3', auth });
+  calendar.events.list({
+    calendarId: calendarID,
+    timeMin: (new Date()).toISOString(),
+    maxResults: 10,
+    singleEvents: true,
+    orderBy: 'startTime',
+  }, (err, res) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    const events = res.data.items;
+    if (events.length) {
+      console.log('Upcoming 10 events:');
+      for (const event of events) {
+        calendar.events.delete({
+          calendarId: calendarID, eventId: event.id,
+        }, function (err) {
+          if (err) {
+            console.log('The API returned an error: ' + err);
+            return;
+          }
+          console.log('Event deleted.');
+        });
+      }
+
+
+    } else {
+      console.log('No upcoming events found.');
+    }
+  });
+}
+
 // =============================================================================================
 // =============================================================================================
 // =============================================================================================
 
 function authorize(credentials) {
-  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  const { client_secret, client_id, redirect_uris } = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
-      client_id, client_secret, redirect_uris[0]);
+    client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
   try {

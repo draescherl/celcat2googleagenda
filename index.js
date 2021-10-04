@@ -1,8 +1,34 @@
+const fs = require('fs');
+const readline = require('readline');
+const { google } = require('googleapis');
 const fetch = require('node-fetch');
 const dotenv = require('dotenv');
 const FormData = require('form-data');
 
 dotenv.config();
+
+
+// If modifying these scopes, delete token.json.
+const SCOPES = ['https://www.googleapis.com/auth/calendar'];
+// The file token.json stores the user's access and refresh tokens, and is
+// created automatically when the authorization flow completes for the first
+// time.
+const TOKEN_PATH = 'private/token.json';
+
+const IDs = [
+  {
+    studentID: "21916219", // ING2 GI G2
+    calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com"
+  },
+  // {
+  //   studentID: "21916195", // ING2 GI G2
+  //   calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com"
+  // },
+  {
+    studentID: "21916187", // ING2 GM 
+    calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com"
+  }
+];
 
 
 // =============================================================================================
@@ -13,17 +39,19 @@ dotenv.config();
 (async () => {
   const token_and_cookies = await get_token_and_cookies();
   const other_cookies = await log_on(token_and_cookies.token, token_and_cookies.cookies);
-  const calendar_data = await get_calendar(other_cookies);
-  const data = calendar_data[calendar_data.length - 2];
 
-  // const parsed = parse_course(data);
+  // Load client secrets from a local file.
+  const tmp = fs.readFileSync('./private/credentials.json', { encoding: 'utf8', flag: 'r' });
+  const oAuth2Client = JSON.parse(authorize(JSON.parse(tmp)));
+  console.log(oAuth2Client);
+
+  const group = IDs[0];
+  // for (const group of IDs) {
+  const calendar_data = await get_calendar(other_cookies, group.studentID);
   const parsed = parser(calendar_data);
-  console.log(parsed);
-
-  // console.log(data.description);
-  // start
-  // end
-  // description
+  // console.log(parsed);
+  saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
+  // }
 })();
 
 
@@ -62,7 +90,8 @@ async function log_on(token, cookies) {
   return result.headers.get('set-cookie').split(';')[0];
 }
 
-async function get_calendar(cookies) {
+
+async function get_calendar(cookies, studentID) {
   const today = new Date();
   const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
   const today_formated = today.toISOString().split('T')[0];
@@ -73,7 +102,7 @@ async function get_calendar(cookies) {
   form_data.append('end', next_week_formated);
   form_data.append('resType', '104');
   form_data.append('calView', 'agendaWeek');
-  form_data.append('federationIds[]', '21916219'); // Celui de jenna : 21916187
+  form_data.append('federationIds[]', studentID);
 
   const result = await make_request(
     'https://services-web.u-cergy.fr/calendar/Home/GetCalendarData',
@@ -132,21 +161,21 @@ function parser(data) {
   return res;
 }
 
+
 function parse_course(course) {
-  
+
   const start = course.start;
   const end = course.end;
   const description = format_description(course.description);
   const split_on_PAU = description.split("PAU");
-  const salle = split_on_PAU[1].split(' ')[1];
-  const name = (split_on_PAU[0].split(' ').length > 2) ? split_on_PAU[0].split(' ').slice(0,-3).join(' ') : split_on_PAU[0].split(' ')[0];
-  
-  // console.log(salle, '---', name, '---', description);
+  const room = split_on_PAU[1].split(' ')[1];
+  const name = (split_on_PAU[0].split(' ').length > 2) ? split_on_PAU[0].split(' ').slice(0, -3).join(' ') : split_on_PAU[0].split(' ')[0];
+
   return {
     start: start,
     end: end,
     name: name,
-    salle: salle
+    room: room
   };
 }
 
@@ -154,8 +183,92 @@ function format_description(desc) {
   desc = desc.replaceAll('<br />', ' ');
   desc = desc.replaceAll('\r\n', '');
   desc = desc.replaceAll('&#233;', 'é');
+  desc = desc.replaceAll('&#232;', 'è');
   desc = desc.replaceAll('&#201;', 'É');
   desc = desc.replaceAll('&#194;', 'À');
 
   return desc;
+}
+
+function saveDataInCalendar(data, calendarID, auth) {
+  let event = {
+    'summary': '',
+    'start': {
+      'dateTime': '',
+      'timeZone': 'Europe/Paris',
+    },
+    'end': {
+      'dateTime': '',
+      'timeZone': 'Europe/Paris',
+    }
+  };
+
+  const course = data[0];
+  // for (const course of data) {
+  event.summary = course.name;
+  event.start.dateTime = course.start;
+  event.end.dateTime = course.end;
+  insertEvent(auth, event, calendarID);
+  // }
+}
+
+function insertEvent(auth, event, calendarId) {
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  calendar.events.insert({
+    auth: auth,
+    calendarId: calendarId,
+    resource: event,
+  }, function (err, event) {
+    if (err) {
+      console.log('There was an error contacting the Calendar service: ' + err);
+      return;
+    }
+    console.log('Event created: %s', event.htmlLink);
+  });
+}
+
+
+// =============================================================================================
+// =============================================================================================
+// =============================================================================================
+
+function authorize(credentials) {
+  const { client_secret, client_id, redirect_uris } = credentials.installed;
+  const oAuth2Client = new google.auth.OAuth2(
+    client_id, client_secret, redirect_uris[0]);
+  console.log("1");
+  // Check if we have previously stored a token.
+  const tmp = fs.readFileSync(TOKEN_PATH, { encoding: 'utf8', flag: 'r' });
+  // console.log("2");
+  // if (err) return getAccessToken(oAuth2Client);
+  // oAuth2Client.setCredentials(JSON.parse(token));
+  // return oAuth2Client;
+  return tmp;
+}
+
+function getAccessToken(oAuth2Client) {
+  console.log("here");
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+  });
+  console.log('Authorize this app by visiting this url:', authUrl);
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  rl.question('Enter the code from that page here: ', (code) => {
+    rl.close();
+    oAuth2Client.getToken(code, (err, token) => {
+      if (err) return console.error('Error retrieving access token', err);
+      oAuth2Client.setCredentials(token);
+      // Store the token to disk for later program executions
+      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+        if (err) return console.error(err);
+        console.log('Token stored to', TOKEN_PATH);
+      });
+      return oAuth2Client;
+    });
+  });
 }

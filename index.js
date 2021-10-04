@@ -37,19 +37,35 @@ const IDs = [
 
 
 (async () => {
-  const token_and_cookies = await get_token_and_cookies();
-  const other_cookies = await log_on(token_and_cookies.token, token_and_cookies.cookies);
+  // console.log("Je pars à la peche aux tokens!")
+  // const token_and_cookies = await get_token_and_cookies();
+  // console.log("J'ai mes tokens !!")
+  // const other_cookies = await log_on(token_and_cookies.token, token_and_cookies.cookies);
+  // console.log("Et les copains je suis logged, pouet pouet !")
 
-  // Load client secrets from a local file.
-  const tmp = fs.readFileSync('./private/credentials.json', { encoding: 'utf8', flag: 'r' });
-  const oAuth2Client = JSON.parse(authorize(JSON.parse(tmp)));
-  console.log(oAuth2Client);
+
+  const content = fs.readFileSync('./private/credentials.json');
+  const oAuth2Client = authorize(JSON.parse(content));
 
   const group = IDs[0];
   // for (const group of IDs) {
-  const calendar_data = await get_calendar(other_cookies, group.studentID);
-  const parsed = parser(calendar_data);
+  // const calendar_data = await get_calendar(other_cookies, group.studentID);
+  // const parsed = parser(calendar_data);
   // console.log(parsed);
+  const parsed = [
+    {
+      start: "2021-10-05T14:00:00",
+      end: "2021-10-05T15:30:00",
+      room: "E214",
+      name: "ECE"
+  },
+    {
+      start: "2021-10-05T15:45:00",
+      end: "2021-10-05T17:15:00",
+      room: "E214",
+      name: "Dev Dist JEE"
+  }
+];
   saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
   // }
 })();
@@ -203,13 +219,12 @@ function saveDataInCalendar(data, calendarID, auth) {
     }
   };
 
-  const course = data[0];
-  // for (const course of data) {
-  event.summary = course.name;
-  event.start.dateTime = course.start;
-  event.end.dateTime = course.end;
-  insertEvent(auth, event, calendarID);
-  // }
+  for (const course of data) {
+    event.summary = `[${course.room}] ${course.name}`;
+    event.start.dateTime = course.start;
+    event.end.dateTime = course.end;
+    insertEvent(auth, event, calendarID);
+  }
 }
 
 function insertEvent(auth, event, calendarId) {
@@ -234,21 +249,23 @@ function insertEvent(auth, event, calendarId) {
 // =============================================================================================
 
 function authorize(credentials) {
-  const { client_secret, client_id, redirect_uris } = credentials.installed;
+  const {client_secret, client_id, redirect_uris} = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
-    client_id, client_secret, redirect_uris[0]);
-  console.log("1");
+      client_id, client_secret, redirect_uris[0]);
+
   // Check if we have previously stored a token.
-  const tmp = fs.readFileSync(TOKEN_PATH, { encoding: 'utf8', flag: 'r' });
-  // console.log("2");
-  // if (err) return getAccessToken(oAuth2Client);
-  // oAuth2Client.setCredentials(JSON.parse(token));
-  // return oAuth2Client;
-  return tmp;
+  try {
+    const token = fs.readFileSync(TOKEN_PATH);
+    oAuth2Client.setCredentials(JSON.parse(token));
+    return oAuth2Client;
+  } catch (err) {
+    return getAccessToken(oAuth2Client);
+  }
 }
 
+
+
 function getAccessToken(oAuth2Client) {
-  console.log("here");
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,

@@ -20,10 +20,10 @@ const IDs = [
     studentID: "21916219", // ING2 GI G2
     calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com"
   },
-  // {
-  //   studentID: "21916195", // ING2 GI G2
-  //   calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com"
-  // },
+  {
+    studentID: "21916195", // ING2 GI G1
+    calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com"
+  },
   {
     studentID: "21916187", // ING2 GM 
     calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com"
@@ -48,13 +48,26 @@ const IDs = [
   const oAuth2Client = authorize(JSON.parse(content));
 
 
-  const group = IDs[0];
-  deleteEvents(oAuth2Client, group.calendarID);
-  // for (const group of IDs) {
-  const calendar_data = await get_calendar(other_cookies, group.studentID);
-  const parsed = parser(calendar_data);
-  // console.log(parsed);
-  // saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
+  for (const group of IDs) {
+
+    const deletePromise = new Promise((resolve, reject) => {
+      deleteEvents(oAuth2Client, group.calendarID, resolve);
+    });
+
+    await deletePromise.then(async () => {
+      console.log("tous les events sont deleted");
+      const calendar_data = await get_calendar(other_cookies, group.studentID);
+      const parsed = parser(calendar_data);
+      const savePromise = new Promise((resolve, reject) => {
+        saveDataInCalendar(parsed, group.calendarID, oAuth2Client, resolve);
+      });
+      await savePromise.then(async () => {
+        console.log("tous les end sont save!!");
+      })
+    });
+    console.log("Fin de l'edt de ", group.studentID);
+  }
+
 })();
 
 
@@ -96,7 +109,7 @@ async function log_on(token, cookies) {
 
 async function get_calendar(cookies, studentID) {
   const today = new Date();
-  const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);
+  const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 28);
   const today_formated = today.toISOString().split('T')[0];
   const next_week_formated = next_week.toISOString().split('T')[0];
 
@@ -166,13 +179,20 @@ function parser(data) {
 
 
 function parse_course(course) {
-
-  const start = course.start;
-  const end = course.end;
+  let room = "";
+  let name = "";
+  let start = "";
+  let end = "";
   const description = format_description(course.description);
-  const split_on_PAU = description.split("PAU");
-  const room = split_on_PAU[1].split(' ')[1];
-  const name = (split_on_PAU[0].split(' ').length > 2) ? split_on_PAU[0].split(' ').slice(0, -3).join(' ') : split_on_PAU[0].split(' ')[0];
+  try {
+    start = course.start;
+    end = course.end;
+    const split_on_PAU = description.split("PAU");
+    room = split_on_PAU[1].split(' ')[1];
+    name = (split_on_PAU[0].split(' ').length > 2) ? split_on_PAU[0].split(' ').slice(0, -3).join(' ') : split_on_PAU[0].split(' ')[0];
+  } catch (error) {
+    name = description;
+  }
 
   return {
     start: start,
@@ -193,38 +213,30 @@ function format_description(desc) {
   return desc;
 }
 
-function saveDataInCalendar(data, calendarID, auth) {
-  // let event = {
-  //   'summary': '',
-  //   'start': {
-  //     'dateTime': '',
-  //     'timeZone': 'Europe/Paris',
-  //   },
-  //   'end': {
-  //     'dateTime': '',
-  //     'timeZone': 'Europe/Paris',
-  //   }
-  // };
+function saveDataInCalendar(data, calendarID, auth, resolve) {
 
-  for (const course of data) {
-    // event.summary = `[${course.room}] ${course.name}`;
-    // event.start.dateTime = course.start;
-    // event.end.dateTime = course.end;
+  var i = 0;
+  const intervalObj = setInterval(() => {
     insertEvent(auth, {
-      'summary': `[${course.room}] ${course.name}`,
+      'summary': `${data[i].room != "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
       'start': {
-        'dateTime': course.start,
+        'dateTime': data[i].start,
         'timeZone': 'Europe/Paris',
       },
       'end': {
-        'dateTime': course.end,
+        'dateTime': data[i].end,
         'timeZone': 'Europe/Paris',
       }
-    }, calendarID);
-  }
+    }, calendarID, resolve, i == data.length - 1);
+
+    i++;
+    if (i >= data.length) {
+      clearInterval(intervalObj);
+    }
+  }, 500);
 }
 
-function insertEvent(auth, event, calendarId) {
+function insertEvent(auth, event, calendarId, resolve, needToResolve) {
   const calendar = google.calendar({ version: 'v3', auth });
 
   calendar.events.insert({
@@ -237,41 +249,57 @@ function insertEvent(auth, event, calendarId) {
       return;
     }
     console.log('Event created: %s', event.htmlLink);
+    if (needToResolve) {
+      resolve();
+    }
   });
 }
 
 
-function deleteEvents(auth, calendarID) {
-
+function deleteEvents(auth, calendarID, resolve) {
+  let yesterDate = new Date();
+  yesterDate.setDate(yesterDate.getDate() - 2);
   const calendar = google.calendar({ version: 'v3', auth });
+
+
+  // Load all the events of the given calendar
   calendar.events.list({
     calendarId: calendarID,
-    timeMin: (new Date()).toISOString(),
-    maxResults: 10,
+    timeMin: yesterDate.toISOString(),
+    maxResults: 100,
     singleEvents: true,
     orderBy: 'startTime',
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
     const events = res.data.items;
+    console.log(events.length);
     if (events.length) {
-      console.log('Upcoming 10 events:');
-      for (const event of events) {
+      var i = 0;
+
+      const intervalObj = setInterval(() => {
         calendar.events.delete({
-          calendarId: calendarID, eventId: event.id,
+          calendarId: calendarID, eventId: events[i].id,
         }, function (err) {
           if (err) {
-            console.log('The API returned an error: ' + err);
+            // console.log('The API returned an error: ' + err);
             return;
           }
-          console.log('Event deleted.');
+          console.log(i, '--Event deleted.');
+          if (i == events.length) {
+            resolve();
+          }
         });
-      }
-
-
+        i++;
+        if (i >= events.length) {
+          clearInterval(intervalObj);
+        }
+      }, 600);
     } else {
       console.log('No upcoming events found.');
+      resolve();
     }
   });
+
 }
 
 // =============================================================================================

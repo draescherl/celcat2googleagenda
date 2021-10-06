@@ -49,7 +49,7 @@ const IDs = [
   const content = fs.readFileSync('./private/credentials.json');
   console.log("[4] Credentials read, logging in to the Google Calendar API... ");
   const oAuth2Client = authorize(JSON.parse(content));
-  console.log("[5] Logged in successfully, deleting all the events...");
+  console.log("[5] Logged in successfully.");
 
   for (const group of IDs) {
     console.log(`\nDeleting events for [${group.group}].`);
@@ -184,9 +184,11 @@ function parser(data) {
 function roundTimeQuarterHour(time) {
   var timeToReturn = new Date(time);
 
-  timeToReturn.setMilliseconds(Math.round(timeToReturn.getMilliseconds() / 1000) * 1000);
-  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60);
-  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 15) * 15);
+  // J'ai juste changé les round pour des floor. Du coup si elle se plante et qu'elle met un cours à 13h59
+  // il va descendre à 13h45 ...
+  timeToReturn.setMilliseconds(Math.floor(timeToReturn.getMilliseconds() / 1000) * 1000);
+  timeToReturn.setSeconds(Math.floor(timeToReturn.getSeconds() / 60) * 60);
+  timeToReturn.setMinutes(Math.floor(timeToReturn.getMinutes() / 15) * 15);
   return timeToReturn;
 }
 

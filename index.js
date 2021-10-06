@@ -21,16 +21,16 @@ const IDs = [
     calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com",
     group: "GSIG2"
   },
-  // {
-  //   studentID: "21916195",
-  //   calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com",
-  //   group: "GSIG1"
-  // },
-  // {
-  //   studentID: "21916187", 
-  //   calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
-  //   group: "GMI"
-  // }
+  {
+    studentID: "21916195",
+    calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com",
+    group: "GSIG1"
+  },
+  {
+    studentID: "21916187", 
+    calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
+    group: "GMI"
+  }
 ];
 
 
@@ -180,15 +180,27 @@ function parser(data) {
   return res;
 }
 
+// https://stackoverflow.com/questions/4968250/how-to-round-time-to-the-nearest-quarter-hour-in-javascript
+function roundTimeQuarterHour(time) {
+  var timeToReturn = new Date(time);
+
+  timeToReturn.setMilliseconds(Math.round(timeToReturn.getMilliseconds() / 1000) * 1000);
+  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60);
+  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 15) * 15);
+  return timeToReturn;
+}
+
 function parse_course(course) {
   let room = "";
   let name = "";
   let start = "";
   let end = "";
+  
   const description = format_description(course.description);
+  
   try {
-    start = course.start;
-    end = course.end;
+    start = roundTimeQuarterHour(course.start);
+    end = roundTimeQuarterHour(course.end);
     const split_on_PAU = description.split("PAU");
     room = split_on_PAU[1].split(' ')[1];
     name = (split_on_PAU[0].split(' ').length > 2) ? split_on_PAU[0].split(' ').slice(0, -3).join(' ') : split_on_PAU[0].split(' ')[0];
@@ -240,7 +252,7 @@ function saveDataInCalendar(data, calendarID, auth, resolve) {
       },
       calendarID,
       resolve,
-      i == data.length - 2
+      i == data.length - 2 // Ici j'ai changé le 1 pour un 2 afin d'éviter un crash
     );
 
     i++;

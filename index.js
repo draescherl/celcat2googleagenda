@@ -17,17 +17,20 @@ const TOKEN_PATH = 'private/token.json';
 
 const IDs = [
   {
-    studentID: "21916219", // ING2 GI G2
-    calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com"
+    studentID: "21916219",
+    calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com",
+    group: "GSIG2"
   },
-  {
-    studentID: "21916195", // ING2 GI G1
-    calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com"
-  },
-  {
-    studentID: "21916187", // ING2 GM 
-    calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com"
-  }
+  // {
+  //   studentID: "21916195",
+  //   calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com",
+  //   group: "GSIG1"
+  // },
+  // {
+  //   studentID: "21916187", 
+  //   calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
+  //   group: "GMI"
+  // }
 ];
 
 
@@ -37,37 +40,38 @@ const IDs = [
 
 
 (async () => {
-  console.log("Je pars à la peche aux tokens!")
+
+  console.log("[1] Reaching website... ");
   const token_and_cookies = await get_token_and_cookies();
-  console.log("J'ai mes tokens !!")
+  console.log("[2] Got token and cookies. Logging in... ");
   const other_cookies = await log_on(token_and_cookies.token, token_and_cookies.cookies);
-  console.log("Et les copains je suis logged, pouet pouet !")
-
-
+  console.log("[3] Logged in successfully, reading 'credentials.json'... ");
   const content = fs.readFileSync('./private/credentials.json');
+  console.log("[4] Credentials read, logging in to the Google Calendar API... ");
   const oAuth2Client = authorize(JSON.parse(content));
-
+  console.log("[5] Logged in successfully, deleting all the events...");
 
   for (const group of IDs) {
-
+    console.log(`\nDeleting events for [${group.group}].`);
     const deletePromise = new Promise((resolve, reject) => {
       deleteEvents(oAuth2Client, group.calendarID, resolve);
     });
 
     await deletePromise.then(async () => {
-      console.log("tous les events sont deleted");
+      console.log(`All events for [${group.group}] have been deleted.`);
       const calendar_data = await get_calendar(other_cookies, group.studentID);
       const parsed = parser(calendar_data);
+      console.log(`\nCreating events for [${group.group}].`);
       const savePromise = new Promise((resolve, reject) => {
         saveDataInCalendar(parsed, group.calendarID, oAuth2Client, resolve);
       });
       await savePromise.then(async () => {
-        console.log("tous les end sont save!!");
-      })
+        console.log(`All events for [${group.group}] have been created.`);
+      });
     });
-    console.log("Fin de l'edt de ", group.studentID);
   }
-
+  
+  console.log('Program finished running successfully.');
 })();
 
 
@@ -105,7 +109,6 @@ async function log_on(token, cookies) {
 
   return result.headers.get('set-cookie').split(';')[0];
 }
-
 
 async function get_calendar(cookies, studentID) {
   const today = new Date();
@@ -177,7 +180,6 @@ function parser(data) {
   return res;
 }
 
-
 function parse_course(course) {
   let room = "";
   let name = "";
@@ -213,21 +215,33 @@ function format_description(desc) {
   return desc;
 }
 
-function saveDataInCalendar(data, calendarID, auth, resolve) {
 
+// =============================================================================================
+// =============================================================================================
+// =============================================================================================
+
+
+function saveDataInCalendar(data, calendarID, auth, resolve) {
   var i = 0;
   const intervalObj = setInterval(() => {
-    insertEvent(auth, {
-      'summary': `${data[i].room != "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
-      'start': {
-        'dateTime': data[i].start,
-        'timeZone': 'Europe/Paris',
+    // console.log(`Creating: ${i}/${data.length - 1}`);
+    insertEvent(
+      auth,
+      {
+        'summary': `${data[i].room != "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
+        'start': {
+          'dateTime': data[i].start,
+          'timeZone': 'Europe/Paris',
+        },
+        'end': {
+          'dateTime': data[i].end,
+          'timeZone': 'Europe/Paris',
+        }
       },
-      'end': {
-        'dateTime': data[i].end,
-        'timeZone': 'Europe/Paris',
-      }
-    }, calendarID, resolve, i == data.length - 1);
+      calendarID,
+      resolve,
+      i == data.length - 2
+    );
 
     i++;
     if (i >= data.length) {
@@ -238,29 +252,30 @@ function saveDataInCalendar(data, calendarID, auth, resolve) {
 
 function insertEvent(auth, event, calendarId, resolve, needToResolve) {
   const calendar = google.calendar({ version: 'v3', auth });
-
+  
   calendar.events.insert({
     auth: auth,
     calendarId: calendarId,
     resource: event,
   }, function (err, event) {
     if (err) {
+      console.log('Event causing trouble: ', event);
       console.log('There was an error contacting the Calendar service: ' + err);
       return;
     }
-    console.log('Event created: %s', event.htmlLink);
+    console.log(`Event created: ${event.data.summary} @ ${event.data.start.dateTime}`);
     if (needToResolve) {
+      console.log("resolving")
       resolve();
     }
   });
 }
 
-
 function deleteEvents(auth, calendarID, resolve) {
   let yesterDate = new Date();
   yesterDate.setDate(yesterDate.getDate() - 2);
-  const calendar = google.calendar({ version: 'v3', auth });
 
+  const calendar = google.calendar({ version: 'v3', auth });
 
   // Load all the events of the given calendar
   calendar.events.list({
@@ -271,40 +286,35 @@ function deleteEvents(auth, calendarID, resolve) {
     orderBy: 'startTime',
   }, (err, res) => {
     if (err) return console.log('The API returned an error: ' + err);
+
     const events = res.data.items;
-    console.log(events.length);
+    console.log("Number of events to delete: ", events.length);
+
     if (events.length) {
       var i = 0;
 
       const intervalObj = setInterval(() => {
-        calendar.events.delete({
-          calendarId: calendarID, eventId: events[i].id,
-        }, function (err) {
-          if (err) {
-            // console.log('The API returned an error: ' + err);
-            return;
-          }
-          console.log(i, '--Event deleted.');
-          if (i == events.length) {
-            resolve();
-          }
+        calendar.events.delete({ calendarId: calendarID, eventId: events[i].id }, (err) => {
+          if (err) return;
+          console.log(`Event number ${i} deleted.`);
+          if (i == events.length) resolve();
         });
         i++;
-        if (i >= events.length) {
-          clearInterval(intervalObj);
-        }
+        if (i >= events.length) clearInterval(intervalObj);
       }, 600);
     } else {
-      console.log('No upcoming events found.');
+      console.log('No events to delete.');
       resolve();
     }
   });
 
 }
 
+
 // =============================================================================================
 // =============================================================================================
 // =============================================================================================
+
 
 function authorize(credentials) {
   const { client_secret, client_id, redirect_uris } = credentials.installed;
@@ -320,8 +330,6 @@ function authorize(credentials) {
     return getAccessToken(oAuth2Client);
   }
 }
-
-
 
 function getAccessToken(oAuth2Client) {
   const authUrl = oAuth2Client.generateAuthUrl({

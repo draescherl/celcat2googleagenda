@@ -202,6 +202,7 @@ function parse_course(course) {
   const description = format_description(course.description);
 
   try {
+    if (course.end == null) return null;
     start = roundTimeQuarterHour(course.start);
     end = roundTimeQuarterHour(course.end);
     const split_on_PAU = description.split("PAU");

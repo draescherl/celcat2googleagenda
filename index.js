@@ -174,8 +174,10 @@ function get_token_from_string(index, str) {
 
 function parser(data) {
   let res = [];
+  let parsed_course;
   data.forEach(e => {
-    res.push(parse_course(e));
+    parsed_course = parse_course(e);
+    if (parsed_course != null) res.push(parsed_course);
   });
 
   return res;

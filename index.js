@@ -27,7 +27,7 @@ const IDs = [
     group: "GSIG1"
   },
   {
-    studentID: "21916187", 
+    studentID: "21916187",
     calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
     group: "GMI"
   }
@@ -51,26 +51,27 @@ const IDs = [
   const oAuth2Client = authorize(JSON.parse(content));
   console.log("[5] Logged in successfully.");
 
-  for (const group of IDs) {
-    console.log(`\nDeleting events for [${group.group}].`);
-    const deletePromise = new Promise((resolve, reject) => {
-      deleteEvents(oAuth2Client, group.calendarID, resolve);
-    });
+  // for (const group of IDs) {
+  const group = IDs[0];
+  console.log(`\nDeleting events for [${group.group}].`);
+  const deletePromise = new Promise((resolve, reject) => {
+    deleteEvents(oAuth2Client, group.calendarID, resolve);
+  });
 
-    await deletePromise.then(async () => {
-      console.log(`All events for [${group.group}] have been deleted.`);
-      const calendar_data = await get_calendar(other_cookies, group.studentID);
-      const parsed = parser(calendar_data);
-      console.log(`\nCreating events for [${group.group}].`);
-      const savePromise = new Promise((resolve, reject) => {
-        saveDataInCalendar(parsed, group.calendarID, oAuth2Client, resolve);
-      });
-      await savePromise.then(async () => {
-        console.log(`All events for [${group.group}] have been created.`);
-      });
+  await deletePromise.then(async () => {
+    console.log(`All events for [${group.group}] have been deleted.`);
+    const calendar_data = await get_calendar(other_cookies, group.studentID);
+    const parsed = parser(calendar_data);
+    console.log(`\nCreating events for [${group.group}].`);
+    const savePromise = new Promise((resolve, reject) => {
+      saveDataInCalendar(parsed, group.calendarID, oAuth2Client, resolve);
     });
-  }
-  
+    await savePromise.then(async () => {
+      console.log(`All events for [${group.group}] have been created.`);
+    });
+  });
+  // }
+
   console.log('Program finished running successfully.');
 })();
 
@@ -197,9 +198,9 @@ function parse_course(course) {
   let name = "";
   let start = "";
   let end = "";
-  
+
   const description = format_description(course.description);
-  
+
   try {
     start = roundTimeQuarterHour(course.start);
     end = roundTimeQuarterHour(course.end);
@@ -266,14 +267,14 @@ function saveDataInCalendar(data, calendarID, auth, resolve) {
 
 function insertEvent(auth, event, calendarId, resolve, needToResolve) {
   const calendar = google.calendar({ version: 'v3', auth });
-  
+
   calendar.events.insert({
     auth: auth,
     calendarId: calendarId,
     resource: event,
   }, function (err, event) {
     if (err) {
-      console.log('Event causing trouble: ', event);
+      console.log('Event causing trouble: ', err);
       console.log('There was an error contacting the Calendar service: ' + err);
       return;
     }
@@ -311,7 +312,7 @@ function deleteEvents(auth, calendarID, resolve) {
         calendar.events.delete({ calendarId: calendarID, eventId: events[i].id }, (err) => {
           if (err) return;
           console.log(`Event number ${i} deleted.`);
-          if (i == events.length) resolve();
+          if (i >= events.length) resolve();
         });
         i++;
         if (i >= events.length) clearInterval(intervalObj);

@@ -51,26 +51,25 @@ const IDs = [
   const oAuth2Client = authorize(JSON.parse(content));
   console.log("[5] Logged in successfully.");
 
-  // for (const group of IDs) {
-  const group = IDs[0];
-  console.log(`\nDeleting events for [${group.group}].`);
-  const deletePromise = new Promise((resolve, reject) => {
-    deleteEvents(oAuth2Client, group.calendarID, resolve);
-  });
+  for (const group of IDs) {
+    console.log(`\nDeleting events for [${group.group}].`);
+    const deletePromise = new Promise((resolve, reject) => {
+      deleteEvents(oAuth2Client, group.calendarID, resolve);
+    });
 
-  await deletePromise.then(async () => {
-    console.log(`All events for [${group.group}] have been deleted.`);
-    const calendar_data = await get_calendar(other_cookies, group.studentID);
-    const parsed = parser(calendar_data);
-    console.log(`\nCreating events for [${group.group}].`);
-    const savePromise = new Promise((resolve, reject) => {
-      saveDataInCalendar(parsed, group.calendarID, oAuth2Client, resolve);
+    await deletePromise.then(async () => {
+      console.log(`All events for [${group.group}] have been deleted.`);
+      const calendar_data = await get_calendar(other_cookies, group.studentID);
+      const parsed = parser(calendar_data);
+      console.log(`\nCreating events for [${group.group}].`);
+      const savePromise = new Promise((resolve, reject) => {
+        saveDataInCalendar(parsed, group.calendarID, oAuth2Client, resolve);
+      });
+      await savePromise.then(async () => {
+        console.log(`All events for [${group.group}] have been created.`);
+      });
     });
-    await savePromise.then(async () => {
-      console.log(`All events for [${group.group}] have been created.`);
-    });
-  });
-  // }
+  }
 
   console.log('Program finished running successfully.');
 })();

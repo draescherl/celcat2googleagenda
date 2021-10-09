@@ -1,3 +1,5 @@
+// noinspection JSUnusedLocalSymbols
+
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
@@ -113,12 +115,12 @@ async function log_on(token, cookies) {
 async function get_calendar(cookies, studentID) {
   const today = new Date();
   const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 28);
-  const today_formated = today.toISOString().split('T')[0];
-  const next_week_formated = next_week.toISOString().split('T')[0];
+  const today_formatted = today.toISOString().split('T')[0];
+  const next_week_formatted = next_week.toISOString().split('T')[0];
 
   let form_data = new FormData();
-  form_data.append('start', today_formated);
-  form_data.append('end', next_week_formated);
+  form_data.append('start', today_formatted);
+  form_data.append('end', next_week_formatted);
   form_data.append('resType', '104');
   form_data.append('calView', 'agendaWeek');
   form_data.append('federationIds[]', studentID);
@@ -133,8 +135,7 @@ async function get_calendar(cookies, studentID) {
     form_data
   );
 
-  const to_return = await result.json();
-  return to_return;
+  return await result.json();
 }
 
 
@@ -151,14 +152,12 @@ async function make_request(url, method = 'GET', headers = {}, body = null) {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36"
   }
 
-  let response = await fetch(url, {
+  return await fetch(url, {
     headers: Object.assign(default_headers, headers),
     method: method,
     redirect: "manual",
     body: body
   });
-
-  return response;
 }
 
 function get_token_from_string(index, str) {
@@ -166,7 +165,7 @@ function get_token_from_string(index, str) {
   let tmp = "";
 
   while (!tmp.includes("value=\"")) tmp += str[index++];
-  while (str[index] != "\"") token += str[index++];
+  while (str[index] !== "\"") token += str[index++];
 
   return token;
 }
@@ -245,7 +244,7 @@ function saveDataInCalendar(data, calendarID, auth, resolve) {
     insertEvent(
       auth,
       {
-        'summary': `${data[i].room != "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
+        'summary': `${data[i].room !== "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
         'start': {
           'dateTime': data[i].start,
           'timeZone': 'Europe/Paris',
@@ -257,7 +256,7 @@ function saveDataInCalendar(data, calendarID, auth, resolve) {
       },
       calendarID,
       resolve,
-      i == data.length - 2 // Ici j'ai changé le 1 pour un 2 afin d'éviter un crash
+      i === data.length - 2 // Ici j'ai changé le 1 pour un 2 afin d'éviter un crash
     );
 
     i++;

@@ -54,23 +54,17 @@ const IDs = [
   console.log("[5] Logged in successfully.");
 
   for (const group of IDs) {
-    console.log(`\nDeleting events for [${group.group}].`);
-    const deletePromise = new Promise((resolve, reject) => {
-      deleteEvents(oAuth2Client, group.calendarID, resolve);
-    });
 
-    await deletePromise.then(async () => {
-      console.log(`All events for [${group.group}] have been deleted.`);
-      const calendar_data = await get_calendar(other_cookies, group.studentID);
-      const parsed = parser(calendar_data);
-      console.log(`\nCreating events for [${group.group}].`);
-      const savePromise = new Promise((resolve, reject) => {
-        saveDataInCalendar(parsed, group.calendarID, oAuth2Client, resolve);
-      });
-      await savePromise.then(async () => {
-        console.log(`All events for [${group.group}] have been created.`);
-      });
-    });
+    console.log(`\nDeleting events for [${group.group}].`);
+    await deleteEvents(oAuth2Client, group.calendarID);
+    console.log(`All events for [${group.group}] have been deleted.`);
+
+    const calendar_data = await get_calendar(other_cookies, group.studentID);
+    const parsed = parser(calendar_data);
+    console.log(`\nCreating events for [${group.group}].`);
+
+    await saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
+    console.log(`All events for [${group.group}] have been created.`);
   }
 
   console.log('Program finished running successfully.');
@@ -237,11 +231,11 @@ function format_description(desc) {
 // =============================================================================================
 
 
-function saveDataInCalendar(data, calendarID, auth, resolve) {
+async function saveDataInCalendar(data, calendarID, auth) {
   var i = 0;
-  const intervalObj = setInterval(() => {
-    // console.log(`Creating: ${i}/${data.length - 1}`);
-    insertEvent(
+
+  while (i < data.length) {
+    await insertEvent(
       auth,
       {
         'summary': `${data[i].room !== "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
@@ -254,76 +248,81 @@ function saveDataInCalendar(data, calendarID, auth, resolve) {
           'timeZone': 'Europe/Paris',
         }
       },
-      calendarID,
-      resolve,
-      i === data.length - 2 // Ici j'ai changé le 1 pour un 2 afin d'éviter un crash
-    );
+      calendarID);
 
     i++;
-    if (i >= data.length) {
-      clearInterval(intervalObj);
-    }
-  }, 500);
+  }
 }
 
-function insertEvent(auth, event, calendarId, resolve, needToResolve) {
+async function insertEvent(auth, event, calendarId) {
   const calendar = google.calendar({ version: 'v3', auth });
 
-  calendar.events.insert({
-    auth: auth,
-    calendarId: calendarId,
-    resource: event,
-  }, function (err, event) {
-    if (err) {
-      console.log('Event causing trouble: ', err);
-      console.log('There was an error contacting the Calendar service: ' + err);
-      return;
-    }
-    console.log(`Event created: ${event.data.summary} @ ${event.data.start.dateTime}`);
-    if (needToResolve) {
-      console.log("resolving")
+  const insertEventPromise = new Promise(async (resolve, reject) => {
+
+    calendar.events.insert({
+      auth: auth,
+      calendarId: calendarId,
+      resource: event,
+    }, function (err, event) {
+      if (err) {
+        console.log('Event causing trouble: ', err);
+        console.log('There was an error contacting the Calendar service: ' + err);
+        return;
+      }
+      console.log(`Event created: ${event.data.summary} @ ${event.data.start.dateTime}`);
       resolve();
-    }
+    });
+
   });
+  await insertEventPromise;
 }
 
-function deleteEvents(auth, calendarID, resolve) {
+async function deleteEvents(auth, calendarID) {
   let yesterDate = new Date();
   yesterDate.setDate(yesterDate.getDate() - 2);
 
   const calendar = google.calendar({ version: 'v3', auth });
 
-  // Load all the events of the given calendar
-  calendar.events.list({
-    calendarId: calendarID,
-    timeMin: yesterDate.toISOString(),
-    maxResults: 100,
-    singleEvents: true,
-    orderBy: 'startTime',
-  }, (err, res) => {
-    if (err) return console.log('The API returned an error: ' + err);
+  const loadEventsPromise = new Promise(async (loadResolve, reject) => {
 
-    const events = res.data.items;
-    console.log("Number of events to delete: ", events.length);
+    // Load all the events of the given calendar
+    await calendar.events.list({
+      calendarId: calendarID,
+      timeMin: yesterDate.toISOString(),
+      maxResults: 100,
+      singleEvents: true,
+      orderBy: 'startTime',
+    }, async (err, res) => {
+      if (err) return console.log('The API returned an error: ' + err);
 
-    if (events.length) {
-      var i = 0;
+      let deleteEventPromise;
+      const events = res.data.items;
+      console.log("Number of events to delete: ", events.length);
 
-      const intervalObj = setInterval(() => {
-        calendar.events.delete({ calendarId: calendarID, eventId: events[i].id }, (err) => {
-          if (err) return;
-          console.log(`Event number ${i} deleted.`);
-          if (i >= events.length) resolve();
-        });
-        i++;
-        if (i >= events.length) clearInterval(intervalObj);
-      }, 600);
-    } else {
-      console.log('No events to delete.');
-      resolve();
-    }
+      if (events.length) {
+        var i = 0;
+        while (i < events.length) {
+          deleteEventPromise = new Promise((resolve, reject) => {
+            calendar.events.delete({ calendarId: calendarID, eventId: events[i].id }, (err) => {
+              if (err) {
+                reject();
+                return;
+              }
+              console.log(`Event number ${i + 1} deleted.`);
+              resolve();
+            });
+          });
+
+          await deleteEventPromise;
+          i++;
+        }
+      } else {
+        console.log('No events to delete.');
+      }
+      loadResolve();
+    });
   });
-
+  await loadEventsPromise;
 }
 
 

@@ -1,5 +1,3 @@
-// noinspection JSUnusedLocalSymbols
-
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
@@ -18,20 +16,25 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const TOKEN_PATH = 'private/token.json';
 
 const IDs = [
+  // {
+  //   studentID: "21916219",
+  //   calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com",
+  //   group: "GSIG2"
+  // },
+  // {
+  //   studentID: "21916195",
+  //   calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com",
+  //   group: "GSIG1"
+  // },
+  // {
+  //   studentID: "21916187",
+  //   calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
+  //   group: "GMI"
+  // },
   {
     studentID: "21916219",
-    calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com",
-    group: "GSIG2"
-  },
-  {
-    studentID: "21916195",
-    calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com",
-    group: "GSIG1"
-  },
-  {
-    studentID: "21916187",
-    calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
-    group: "GMI"
+    calendarID: "c_bdcqp77b4njc9r57s4i1j98p3o@group.calendar.google.com",
+    group: "GSIG2-tests"
   }
 ];
 
@@ -61,8 +64,9 @@ const IDs = [
 
     const calendar_data = await get_calendar(other_cookies, group.studentID);
     const parsed = parser(calendar_data);
-    console.log(`\nCreating events for [${group.group}].`);
+    console.log(parsed);
 
+    console.log(`\nCreating events for [${group.group}].`);
     await saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
     console.log(`All events for [${group.group}] have been created.`);
   }
@@ -77,6 +81,7 @@ const IDs = [
 
 
 async function get_token_and_cookies() {
+
   const result = await make_request('https://services-web.u-cergy.fr/calendar/LdapLogin', 'GET');
   const html = await result.text();
   const token_starting_point = html.search('__RequestVerificationToken');
@@ -94,13 +99,13 @@ async function log_on(token, cookies) {
   creds.append("__RequestVerificationToken", token);
 
   const result = await make_request(
-    'https://services-web.u-cergy.fr/calendar/LdapLogin/Logon',
-    'POST',
-    {
-      cookie: cookies,
-      'content-type': 'application/x-www-form-urlencoded'
-    },
-    creds
+      'https://services-web.u-cergy.fr/calendar/LdapLogin/Logon',
+      'POST',
+      {
+        cookie: cookies,
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      creds
   );
 
   return result.headers.get('set-cookie').split(';')[0];
@@ -120,13 +125,13 @@ async function get_calendar(cookies, studentID) {
   form_data.append('federationIds[]', studentID);
 
   const result = await make_request(
-    'https://services-web.u-cergy.fr/calendar/Home/GetCalendarData',
-    'POST',
-    {
-      cookie: cookies,
-      ...form_data.getHeaders()
-    },
-    form_data
+      'https://services-web.u-cergy.fr/calendar/Home/GetCalendarData',
+      'POST',
+      {
+        cookie: cookies,
+        ...form_data.getHeaders()
+      },
+      form_data
   );
 
   return await result.json();
@@ -234,20 +239,21 @@ async function saveDataInCalendar(data, calendarID, auth) {
 
   while (i < data.length) {
     await insertEvent(
-      auth,
-      {
-        'summary': `${data[i].room !== "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
-        'description': `Mis à jour le ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()} à ${today.getHours()}h${today.getMinutes()}.`,
-        'start': {
-          'dateTime': data[i].start,
-          'timeZone': 'Europe/Paris',
+        auth,
+        {
+          'summary': `${data[i].room !== "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
+          'description': `Mis à jour le ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()} à ${today.getHours()}h${today.getMinutes()}.`,
+          'start': {
+            'dateTime': data[i].start,
+            'timeZone': 'Europe/Paris',
+          },
+          'end': {
+            'dateTime': data[i].end,
+            'timeZone': 'Europe/Paris',
+          }
         },
-        'end': {
-          'dateTime': data[i].end,
-          'timeZone': 'Europe/Paris',
-        }
-      },
-      calendarID);
+        calendarID
+    );
 
     i++;
   }
@@ -257,7 +263,6 @@ async function insertEvent(auth, event, calendarId) {
   const calendar = google.calendar({ version: 'v3', auth });
 
   const insertEventPromise = new Promise(async (resolve, reject) => {
-
     calendar.events.insert({
       auth: auth,
       calendarId: calendarId,
@@ -333,7 +338,7 @@ async function deleteEvents(auth, calendarID) {
 function authorize(credentials) {
   const { client_secret, client_id, redirect_uris } = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
-    client_id, client_secret, redirect_uris[0]);
+      client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
   try {

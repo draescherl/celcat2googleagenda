@@ -181,9 +181,9 @@ function roundTimeQuarterHour(time) {
 
   // J'ai juste changé les round pour des floor. Du coup si elle se plante et qu'elle met un cours à 13h59
   // il va descendre à 13h45 ...
-  timeToReturn.setMilliseconds(Math.floor(timeToReturn.getMilliseconds() / 1000) * 1000);
-  timeToReturn.setSeconds(Math.floor(timeToReturn.getSeconds() / 60) * 60);
-  timeToReturn.setMinutes(Math.floor(timeToReturn.getMinutes() / 15) * 15);
+  timeToReturn.setMilliseconds(Math.round(timeToReturn.getMilliseconds() / 1000) * 1000);
+  timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60);
+  timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 15) * 15);
   return timeToReturn;
 }
 
@@ -232,7 +232,7 @@ function format_description(desc) {
 
 
 async function saveDataInCalendar(data, calendarID, auth) {
-  var i = 0;
+  let i = 0;
 
   while (i < data.length) {
     await insertEvent(
@@ -300,7 +300,7 @@ async function deleteEvents(auth, calendarID) {
       console.log("Number of events to delete: ", events.length);
 
       if (events.length) {
-        var i = 0;
+        let i = 0;
         while (i < events.length) {
           deleteEventPromise = new Promise((resolve, reject) => {
             calendar.events.delete({ calendarId: calendarID, eventId: events[i].id }, (err) => {

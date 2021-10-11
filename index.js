@@ -177,10 +177,7 @@ function parser(data) {
 
 // https://stackoverflow.com/questions/4968250/how-to-round-time-to-the-nearest-quarter-hour-in-javascript
 function roundTimeQuarterHour(time) {
-  var timeToReturn = new Date(time);
-
-  // J'ai juste changé les round pour des floor. Du coup si elle se plante et qu'elle met un cours à 13h59
-  // il va descendre à 13h45 ...
+  let timeToReturn = new Date(time);
   timeToReturn.setMilliseconds(Math.round(timeToReturn.getMilliseconds() / 1000) * 1000);
   timeToReturn.setSeconds(Math.round(timeToReturn.getSeconds() / 60) * 60);
   timeToReturn.setMinutes(Math.round(timeToReturn.getMinutes() / 15) * 15);
@@ -233,12 +230,14 @@ function format_description(desc) {
 
 async function saveDataInCalendar(data, calendarID, auth) {
   let i = 0;
+  const today = new Date();
 
   while (i < data.length) {
     await insertEvent(
       auth,
       {
         'summary': `${data[i].room !== "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
+        'description': `Mis à jour le ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()} à ${today.getHours()}h${today.getMinutes()}.`,
         'start': {
           'dateTime': data[i].start,
           'timeZone': 'Europe/Paris',

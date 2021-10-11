@@ -4,11 +4,6 @@
 FROM node:16.8.0
 ENV NODE_ENV=production
 
-# Set timezone
-RUN echo "Europe/Paris" > /etc/timezone
-RUN dpkg-reconfigure -f noninteractive tzdata
-#ENV TZ=Europe/Paris
-
 # Create a working folder
 WORKDIR /app
 

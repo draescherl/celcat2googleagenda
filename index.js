@@ -64,7 +64,6 @@ const IDs = [
 
     const calendar_data = await get_calendar(other_cookies, group.studentID);
     const parsed = parser(calendar_data);
-    console.log(parsed);
 
     console.log(`\nCreating events for [${group.group}].`);
     await saveDataInCalendar(parsed, group.calendarID, oAuth2Client);
@@ -99,13 +98,13 @@ async function log_on(token, cookies) {
   creds.append("__RequestVerificationToken", token);
 
   const result = await make_request(
-      'https://services-web.u-cergy.fr/calendar/LdapLogin/Logon',
-      'POST',
-      {
-        cookie: cookies,
-        'content-type': 'application/x-www-form-urlencoded'
-      },
-      creds
+    'https://services-web.u-cergy.fr/calendar/LdapLogin/Logon',
+    'POST',
+    {
+      cookie: cookies,
+      'content-type': 'application/x-www-form-urlencoded'
+    },
+    creds
   );
 
   return result.headers.get('set-cookie').split(';')[0];
@@ -125,13 +124,13 @@ async function get_calendar(cookies, studentID) {
   form_data.append('federationIds[]', studentID);
 
   const result = await make_request(
-      'https://services-web.u-cergy.fr/calendar/Home/GetCalendarData',
-      'POST',
-      {
-        cookie: cookies,
-        ...form_data.getHeaders()
-      },
-      form_data
+    'https://services-web.u-cergy.fr/calendar/Home/GetCalendarData',
+    'POST',
+    {
+      cookie: cookies,
+      ...form_data.getHeaders()
+    },
+    form_data
   );
 
   return await result.json();
@@ -239,20 +238,20 @@ async function saveDataInCalendar(data, calendarID, auth) {
 
   while (i < data.length) {
     await insertEvent(
-        auth,
-        {
-          'summary': `${data[i].room !== "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
-          'description': `Mis à jour le ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()} à ${today.getHours()}h${today.getMinutes()}.`,
-          'start': {
-            'dateTime': data[i].start,
-            'timeZone': 'Europe/Paris',
-          },
-          'end': {
-            'dateTime': data[i].end,
-            'timeZone': 'Europe/Paris',
-          }
+      auth,
+      {
+        'summary': `${data[i].room !== "" ? "[" + data[i].room + "]" : ""} ${data[i].name}`,
+        'description': `Mis à jour le ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()} à ${today.getHours()}h${today.getMinutes()}.`,
+        'start': {
+          'dateTime': data[i].start,
+          'timeZone': 'Europe/Paris',
         },
-        calendarID
+        'end': {
+          'dateTime': data[i].end,
+          'timeZone': 'Europe/Paris',
+        }
+      },
+      calendarID
     );
 
     i++;
@@ -338,7 +337,7 @@ async function deleteEvents(auth, calendarID) {
 function authorize(credentials) {
   const { client_secret, client_id, redirect_uris } = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
-      client_id, client_secret, redirect_uris[0]);
+    client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
   try {

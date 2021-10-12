@@ -16,26 +16,26 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const TOKEN_PATH = 'private/token.json';
 
 const IDs = [
-  // {
-  //   studentID: "21916219",
-  //   calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com",
-  //   group: "GSIG2"
-  // },
-  // {
-  //   studentID: "21916195",
-  //   calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com",
-  //   group: "GSIG1"
-  // },
-  // {
-  //   studentID: "21916187",
-  //   calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
-  //   group: "GMI"
-  // },
   {
     studentID: "21916219",
-    calendarID: "c_bdcqp77b4njc9r57s4i1j98p3o@group.calendar.google.com",
-    group: "GSIG2-tests"
-  }
+    calendarID: "c_butjsd14hb0bkqbkrnu37qkb18@group.calendar.google.com",
+    group: "GSIG2"
+  },
+  {
+    studentID: "21916195",
+    calendarID: "c_s8bo9q25pj55hg4om4b9ie69h0@group.calendar.google.com",
+    group: "GSIG1"
+  },
+  {
+    studentID: "21916187",
+    calendarID: "c_0vhb4293n9ip27umqk3ej9vegs@group.calendar.google.com",
+    group: "GMI"
+  },
+  // {
+  //   studentID: "21916219",
+  //   calendarID: "c_bdcqp77b4njc9r57s4i1j98p3o@group.calendar.google.com",
+  //   group: "GSIG2-tests"
+  // }
 ];
 
 

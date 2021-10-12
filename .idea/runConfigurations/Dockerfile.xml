@@ -2,7 +2,7 @@
   <configuration default="false" name="Dockerfile" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
     <deployment type="dockerfile">
       <settings>
-        <option name="imageTag" value="docker-in-webstorm" />
+        <option name="imageTag" value="c2ga-in-docker" />
         <option name="containerName" value="celcat2googleagenda" />
         <option name="envVars">
           <list>

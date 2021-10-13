@@ -1,3 +1,5 @@
+// noinspection SpellCheckingInspection,JSUnresolvedVariable
+
 const fs = require('fs');
 const readline = require('readline');
 const { google } = require('googleapis');
@@ -14,6 +16,9 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = 'private/token.json';
+
+// Delay to avoid a "Time Rate Exceeded" error from the calendar API
+const DELAY = 750;
 
 const IDs = [
   {
@@ -254,6 +259,7 @@ async function saveDataInCalendar(data, calendarID, auth) {
       calendarID
     );
 
+    await new Promise(resolve => setTimeout(resolve, DELAY));
     i++;
   }
 }
@@ -261,8 +267,8 @@ async function saveDataInCalendar(data, calendarID, auth) {
 async function insertEvent(auth, event, calendarId) {
   const calendar = google.calendar({ version: 'v3', auth });
 
-  const insertEventPromise = new Promise(async (resolve, reject) => {
-    calendar.events.insert({
+  const insertEventPromise = new Promise(async (resolve) => {
+    await calendar.events.insert({
       auth: auth,
       calendarId: calendarId,
       resource: event,
@@ -281,17 +287,16 @@ async function insertEvent(auth, event, calendarId) {
 }
 
 async function deleteEvents(auth, calendarID) {
-  let yesterDate = new Date();
-  yesterDate.setDate(yesterDate.getDate() - 2);
+  let yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 2);
 
   const calendar = google.calendar({ version: 'v3', auth });
 
-  const loadEventsPromise = new Promise(async (loadResolve, reject) => {
-
+  const loadEventsPromise = new Promise(async (loadResolve) => {
     // Load all the events of the given calendar
     await calendar.events.list({
       calendarId: calendarID,
-      timeMin: yesterDate.toISOString(),
+      timeMin: yesterday.toISOString(),
       maxResults: 100,
       singleEvents: true,
       orderBy: 'startTime',
@@ -314,7 +319,9 @@ async function deleteEvents(auth, calendarID) {
               console.log(`Event number ${i + 1} deleted.`);
               resolve();
             });
+
           });
+          await new Promise(resolve => setTimeout(resolve, DELAY));
 
           await deleteEventPromise;
           i++;

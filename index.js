@@ -117,7 +117,7 @@ async function log_on(token, cookies) {
 
 async function get_calendar(cookies, studentID) {
   const today = new Date();
-  const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);//28);
+  const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 28);
   const today_formatted = today.toISOString().split('T')[0];
   const next_week_formatted = next_week.toISOString().split('T')[0];
 

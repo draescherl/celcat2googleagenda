@@ -37,7 +37,7 @@ const IDs = [
     group: "GMI"
   },
   // {
-  //   studentID: "21916219",
+  //   studentID: "21916220",
   //   calendarID: "c_bdcqp77b4njc9r57s4i1j98p3o@group.calendar.google.com",
   //   group: "GSIG2-tests"
   // }
@@ -117,7 +117,7 @@ async function log_on(token, cookies) {
 
 async function get_calendar(cookies, studentID) {
   const today = new Date();
-  const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 28);
+  const next_week = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 7);//28);
   const today_formatted = today.toISOString().split('T')[0];
   const next_week_formatted = next_week.toISOString().split('T')[0];
 
@@ -207,7 +207,16 @@ function parse_course(course) {
     end = roundTimeQuarterHour(course.end);
     const split_on_PAU = description.split("PAU");
     room = split_on_PAU[1].split(' ')[1];
-    name = (split_on_PAU[0].split(' ').length > 2) ? split_on_PAU[0].split(' ').slice(0, -3).join(' ') : split_on_PAU[0].split(' ')[0];
+    if (split_on_PAU[0].split(' ').length > 3) {
+      const tmp = split_on_PAU[0];
+      const keywords = ["CM", "TP", "TD"];
+      for (k of keywords) {
+        if (tmp.split(k).length > 1) {
+          name = k + tmp.split(k)[1]
+        }
+      }
+    }
+    name = name != "" ? name : name = split_on_PAU[0];
   } catch (error) {
     name = description;
   }
